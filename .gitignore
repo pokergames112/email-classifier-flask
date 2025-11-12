@@ -1,0 +1,9 @@
+# Arquivos de Sistema e de Editor
+.DS_Store
+*.pyc
+
+# Diretórios de Ambiente Virtual
+venv/
+
+# Variáveis de Ambiente e Segredos (CRUCIAL!)
+.env
