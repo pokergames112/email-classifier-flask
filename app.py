@@ -1,6 +1,8 @@
 # app.py - Versão FINAL com Lógica Pura (GRATUITA - Sem IA pesada)
 
 from flask import Flask, render_template, request, jsonify
+# REMOVIDO: from transformers import pipeline
+# REMOVIDO: import openai
 import PyPDF2
 from io import BytesIO
 from dotenv import load_dotenv
@@ -18,7 +20,6 @@ app = Flask(__name__)
 
 def preprocess_text(email_content):
     """Função para limpeza e pré-processamento do texto do e-mail."""
-    # Converte para minúsculas para facilitar a busca por palavras-chave
     return email_content.strip().lower()
 
 def classify_and_respond_pure_logic(email_content_lower):
@@ -26,7 +27,6 @@ def classify_and_respond_pure_logic(email_content_lower):
     Classifica o e-mail e sugere uma resposta baseada unicamente em regras.
     Totalmente gratuito e não usa IA pesada ou APIs.
     """
-
     # Palavras-chave que indicam AÇÃO/PRODUTIVIDADE
     produtivas_keywords = ["preciso", "gostaria de saber", "reclamação", "dúvida", "problema", "erro", "solicito", "quero", "anexo", "código", "boleto"]
     
@@ -45,7 +45,6 @@ def classify_and_respond_pure_logic(email_content_lower):
         
     # Classificação Padrão (Fallback)
     else:
-        # Se for um texto longo ou que não se encaixa nas regras, assume Produtivo.
         categoria = "Produtivo (Padrão)"
         resposta_sugerida = "Obrigado por nos contatar! Recebemos sua mensagem. Por favor, especifique sua dúvida ou solicitação para que possamos ajudá-lo de forma eficiente."
 
