@@ -1,54 +1,72 @@
-# app.py - Versão FINAL com Lógica Pura (GRATUITA - Sem IA pesada)
+# app.py - Versão FINAL com OpenAI API (Atende ao critério "Uso de AI")
 
 from flask import Flask, render_template, request, jsonify
-# REMOVIDO: from transformers import pipeline
-# REMOVIDO: import openai
-import PyPDF2
-from io import BytesIO
+import openai
 from dotenv import load_dotenv
 import os
+import PyPDF2
+from io import BytesIO
+import json 
 
-# --- 1. CONFIGURAÇÃO (Variáveis de ambiente) ---
+# --- 1. CONFIGURAÇÃO DA API (Usa a chave do .env) ---
 
 load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY") 
 
 # --- 2. INICIALIZAÇÃO DO FLASK ---
 
 app = Flask(__name__) 
 
-# --- 3. FUNÇÕES DE PROCESSAMENTO E CLASSIFICAÇÃO (Lógica Pura) ---
+# --- 3. FUNÇÕES DE PROCESSAMENTO E IA ---
 
 def preprocess_text(email_content):
     """Função para limpeza e pré-processamento do texto do e-mail."""
-    return email_content.strip().lower()
+    return email_content.strip()
 
-def classify_and_respond_pure_logic(email_content_lower):
-    """
-    Classifica o e-mail e sugere uma resposta baseada unicamente em regras.
-    Totalmente gratuito e não usa IA pesada ou APIs.
-    """
-    # Palavras-chave que indicam AÇÃO/PRODUTIVIDADE
-    produtivas_keywords = ["preciso", "gostaria de saber", "reclamação", "dúvida", "problema", "erro", "solicito", "quero", "anexo", "código", "boleto"]
+def classify_and_respond_with_ai(email_content):
+    """Usa a API do OpenAI para classificar o e-mail e sugerir uma resposta."""
+
+    # As categorias que a IA deve escolher
+    categorias = ["Produtivo", "Improdutivo"]
     
-    # Palavras-chave que indicam AGRADECIMENTO/IMPRODUTIVIDADE
-    improdutivas_keywords = ["obrigado", "obrigada", "valeu", "entendi", "ok", "confirmado", "agradeço", "parabéns", "concluí"]
+    # Monta o prompt (Este é o seu "ajuste da AI" / Prompt Engineering)
+    prompt = f"""
+    Você é um assistente de classificação de e-mails de atendimento ao cliente.
+    O objetivo é classificar o e-mail abaixo em uma das seguintes categorias:
+    - 'Produtivo': O e-mail contém um pedido, uma dúvida ou uma reclamação que exige ação ou resposta detalhada.
+    - 'Improdutivo': O e-mail é apenas uma continuação da conversa, um comentário, ou uma mensagem que NÃO exige uma ação posterior do operador (como 'ok' ou 'entendi').
 
-    # Verifica se há palavras produtivas
-    if any(k in email_content_lower for k in produtivas_keywords):
-        categoria = "Produtivo"
-        resposta_sugerida = "Obrigado por nos contatar! Recebemos sua solicitação e já estamos analisando. Em breve entraremos em contato com uma solução ou resposta completa."
-        
-    # Verifica se há palavras improdutivas
-    elif any(k in email_content_lower for k in improdutivas_keywords):
-        categoria = "Improdutivo"
-        resposta_sugerida = "Olá! Recebemos sua mensagem. Se precisar de algo mais, estamos à disposição. Caso contrário, considere esta conversa encerrada."
-        
-    # Classificação Padrão (Fallback)
-    else:
-        categoria = "Produtivo (Padrão)"
-        resposta_sugerida = "Obrigado por nos contatar! Recebemos sua mensagem. Por favor, especifique sua dúvida ou solicitação para que possamos ajudá-lo de forma eficiente."
+    Além da classificação, forneça uma 'resposta_sugerida' em português, focada, clara e profissional para o e-mail,
+    seguindo as diretrizes de atendimento (tempo de resposta e esclarecimento de dúvidas).
+    Se a categoria for 'Improdutivo', a resposta sugerida deve ser breve e apenas de cortesia.
 
-    return categoria, resposta_sugerida
+    E-MAIL: "{email_content[:2000]}"
+
+    Responda apenas com um JSON formatado, seguindo a estrutura:
+    {{
+        "categoria": "...",
+        "resposta_sugerida": "..."
+    }}
+    """
+
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Você é um classificador de e-mails e gerador de respostas."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+
+        resultado_ia = json.loads(response.choices[0].message.content)
+
+        return resultado_ia.get("categoria"), resultado_ia.get("resposta_sugerida")
+
+    except Exception as e:
+        print(f"Erro na API do OpenAI: {e}")
+        # Fallback para caso de erro na API
+        return "Erro - API", "Houve um erro de comunicação com o serviço de IA. Tente novamente."
 
 # --- O RESTANTE DO SEU CÓDIGO (ROTAS FLASK) ---
 
@@ -61,7 +79,7 @@ def process_email():
     email_content = None
     email_file = request.files.get('email_file')
     
-    # 1. LÓGICA DE TRATAMENTO DE ARQUIVOS
+    # 1. LÓGICA DE TRATAMENTO DE ARQUIVOS (Mantida)
     if email_file and email_file.filename:
         filename = email_file.filename
         
@@ -92,9 +110,9 @@ def process_email():
     if not email_content:
         return jsonify({"error": "Por favor, insira o conteúdo de um e-mail ou faça upload de um arquivo."}), 400
 
-    # 4. CHAMADA À LÓGICA PURA
+    # 4. CHAMADA À IA (MUDANÇA CRUCIAL)
     cleaned_text = preprocess_text(email_content)
-    categoria, resposta = classify_and_respond_pure_logic(cleaned_text)
+    categoria, resposta = classify_and_respond_with_ai(cleaned_text)
 
     # 5. RETORNO DO RESULTADO
     return jsonify({
