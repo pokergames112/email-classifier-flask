@@ -1,4 +1,4 @@
-# app.py - Versão FINAL, GRATUITA, SEM IA PESADA (Somente Lógica Pura)
+# app.py - Versão FINAL com Lógica Pura (GRATUITA - Sem IA pesada)
 
 from flask import Flask, render_template, request, jsonify
 import PyPDF2
@@ -9,7 +9,6 @@ import os
 # --- 1. CONFIGURAÇÃO (Variáveis de ambiente) ---
 
 load_dotenv()
-# Aqui não precisamos de chaves de API, mas é bom manter a estrutura.
 
 # --- 2. INICIALIZAÇÃO DO FLASK ---
 
@@ -19,19 +18,20 @@ app = Flask(__name__)
 
 def preprocess_text(email_content):
     """Função para limpeza e pré-processamento do texto do e-mail."""
+    # Converte para minúsculas para facilitar a busca por palavras-chave
     return email_content.strip().lower()
 
 def classify_and_respond_pure_logic(email_content_lower):
     """
-    Classifica o e-mail e sugere uma resposta baseada unicamente em regras e palavras-chave.
+    Classifica o e-mail e sugere uma resposta baseada unicamente em regras.
     Totalmente gratuito e não usa IA pesada ou APIs.
     """
 
     # Palavras-chave que indicam AÇÃO/PRODUTIVIDADE
-    produtivas_keywords = ["preciso", "gostaria de saber", "reclamação", "dúvida", "problema", "erro", "solicito", "quero"]
+    produtivas_keywords = ["preciso", "gostaria de saber", "reclamação", "dúvida", "problema", "erro", "solicito", "quero", "anexo", "código", "boleto"]
     
     # Palavras-chave que indicam AGRADECIMENTO/IMPRODUTIVIDADE
-    improdutivas_keywords = ["obrigado", "obrigada", "valeu", "entendi", "ok", "confirmado", "agradeço"]
+    improdutivas_keywords = ["obrigado", "obrigada", "valeu", "entendi", "ok", "confirmado", "agradeço", "parabéns", "concluí"]
 
     # Verifica se há palavras produtivas
     if any(k in email_content_lower for k in produtivas_keywords):
@@ -45,6 +45,7 @@ def classify_and_respond_pure_logic(email_content_lower):
         
     # Classificação Padrão (Fallback)
     else:
+        # Se for um texto longo ou que não se encaixa nas regras, assume Produtivo.
         categoria = "Produtivo (Padrão)"
         resposta_sugerida = "Obrigado por nos contatar! Recebemos sua mensagem. Por favor, especifique sua dúvida ou solicitação para que possamos ajudá-lo de forma eficiente."
 
@@ -52,21 +53,17 @@ def classify_and_respond_pure_logic(email_content_lower):
 
 # --- O RESTANTE DO SEU CÓDIGO (ROTAS FLASK) ---
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
 
 @app.route('/process', methods=['POST'])
 def process_email():
-    # 1. TRATAMENTO DE UPLOAD DE ARQUIVOS
     email_content = None
+    email_file = request.files.get('email_file')
     
-    # ... (Seu código de upload de arquivo .txt e .pdf aqui)
-    # ATENÇÃO: Use o código do seu último 'app.py' para esta seção 
-    # (a parte que lê e extrai texto de .txt e .pdf).
-
-    if 'email_file' in request.files and request.files['email_file'].filename != '':
-        email_file = request.files['email_file']
+    # 1. LÓGICA DE TRATAMENTO DE ARQUIVOS
+    if email_file and email_file.filename:
         filename = email_file.filename
         
         if filename.endswith('.txt'):
@@ -88,19 +85,19 @@ def process_email():
         else:
             return jsonify({"error": "Formato de arquivo não suportado. Use .txt ou .pdf."}), 400
     
+    # 2. LÓGICA DE TRATAMENTO DE TEXTO (Se nenhum arquivo foi enviado)
     else:
         email_content = request.form.get('email_content')
     
-    # 2. VERIFICAÇÃO FINAL
+    # 3. VERIFICAÇÃO FINAL
     if not email_content:
         return jsonify({"error": "Por favor, insira o conteúdo de um e-mail ou faça upload de um arquivo."}), 400
 
-    # 3. CHAMADA À LÓGICA PURA
+    # 4. CHAMADA À LÓGICA PURA
     cleaned_text = preprocess_text(email_content)
-    # A única chamada de função de classificação mudou aqui:
     categoria, resposta = classify_and_respond_pure_logic(cleaned_text)
 
-    # 4. RETORNO DO RESULTADO
+    # 5. RETORNO DO RESULTADO
     return jsonify({
         "categoria": categoria,
         "resposta_sugerida": resposta
